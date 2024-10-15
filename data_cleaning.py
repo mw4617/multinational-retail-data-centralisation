@@ -13,7 +13,37 @@ class DataCleaning:
    '''
     
    def __init__(self)-> None:
-        pass
+        
+    '''
+    Intialises DataCleaning class by creating an instance of DataExtractor for use by DataCleaning methods
+    '''
+    self.dt_extractor=DataExtractor() #Intialising data extractor
+
+        # Helper function to handle different custom date formats
+   def parse_custom_dates(self,date_str):
+       """
+    Attempts to parse a date string into a datetime object, supporting multiple date formats.
+
+    The function first tries to parse the date string in the 'yyyy-mm-dd' format. If it fails,
+    it attempts to coerce the date string into a valid datetime object by trying to handle
+    other common formats like 'Month dd, yyyy' or 'Month yyyy dd'. If parsing fails completely,
+    it returns NaT (Not a Time).
+
+    Args:
+        date_str (str): The date string to be parsed.
+
+    Returns:
+        pd.Timestamp or pd.NaT: The parsed date as a pandas Timestamp if successful, or NaT if parsing fails.
+       """
+       try:
+        # First attempt to parse using the default format
+        return pd.to_datetime(date_str, format='%Y-%m-%d', errors='raise')
+       except:
+        # Try to handle formats like 'Month dd, yyyy' or 'Month yyyy dd'
+         try:
+            return pd.to_datetime(date_str, errors='coerce')  # This will parse a wider range of formats
+         except:
+            return pd.NaT  # If all fails, mark as NaT
    
    def clean_user_data(self):
 
@@ -30,29 +60,15 @@ class DataCleaning:
            pd.DataFrame: The cleaned pandas DataFrame with user data.
     '''   
 
-    dt_extractor=DataExtractor() #Intialising data extractor
-
-    client_data=dt_extractor.read_rds_table('legacy_users') #getting python dataframe storing client data
+    client_data=self.dt_extractor.read_rds_table('legacy_users') #getting python dataframe storing client data
     
     # in address column replacing '\n' with ' '
     client_data['address'] = client_data['address'].str.replace('\n', ' ', regex=False)
 
     # Assuming df_unfiltered is your dataframe and contains a 'join_date' column
-    
-    # Helper function to handle different custom date formats
-    def parse_custom_dates(date_str):
-       try:
-        # First attempt to parse using the default format
-        return pd.to_datetime(date_str, format='%Y-%m-%d', errors='raise')
-       except:
-        # Try to handle formats like 'Month dd, yyyy' or 'Month yyyy dd'
-         try:
-            return pd.to_datetime(date_str, errors='coerce')  # This will parse a wider range of formats
-         except:
-            return pd.NaT  # If all fails, mark as NaT
 
     # Convert 'join_date' to datetime, forcing errors to 'NaT' for invalid dates
-    client_data['join_date'] = client_data['join_date'].apply(parse_custom_dates)
+    client_data['join_date'] = client_data['join_date'].apply(self.parse_custom_dates)
 
     # Filter out rows where 'join_date' couldn't be converted (i.e., where it's NaT)
     client_data_filtered = client_data[client_data['join_date'].notna()]
@@ -71,9 +87,46 @@ class DataCleaning:
     print(f"DataFrame successfully saved to {output_path}")
    
     return client_data_filtered #returns the cleaned client data
+   
+   def clean_card_data(self,url):
+     
+     """
+    Cleans the card details data extracted from a PDF file at the provided URL, ensuring date consistency and proper formatting.
+
+    This method:
+    
+    1. Extracts card details data from the specified PDF file using the 'retrieve_pdf_data' method.
+    2. Processes the 'date_payment_confirmed' column by:
+       - Parsing the date strings into a uniform 'yyyy-mm-dd' format.
+       - Filtering out rows where the 'date_payment_confirmed' could not be successfully converted (i.e., invalid dates).
+    3. Removes unnecessary or erroneous columns such as 'card_number expiry_date' and 'Unnamed: 0' (if they exist).
+    4. Returns the cleaned pandas DataFrame with valid data and consistent formatting.
+
+    Args:
+        url (str): The URL of the PDF file containing the card details to be extracted and cleaned.
+
+    Returns:
+        pd.DataFrame: A cleaned pandas DataFrame containing valid card details with consistent date formatting and relevant columns only.
+     """
+     #extracting pandas dateframe containing card details
+     card_deatils_df=self.dt_extractor.retrieve_pdf_data(url)
+     
+     # Convert 'date_payment_confirmed' to datetime, forcing errors to 'NaT' for invalid dates
+     card_deatils_df['date_payment_confirmed'] = card_deatils_df['date_payment_confirmed'].apply(self.parse_custom_dates)
+
+     # Filter out rows where 'date_payment_confirmed' couldn't be converted (i.e., where it's NaT)
+     card_deatils_df_filtered = card_deatils_df[card_deatils_df['date_payment_confirmed'].notna()]
+     
+     #dropping erronous columns with null values
+     card_deatils_df_filtered = card_deatils_df_filtered.drop(columns=['card_number expiry_date', 'Unnamed: 0'], errors='ignore')
+
+     #Return filtered dataframe
+     return card_deatils_df_filtered
 
 cleaned=DataCleaning()
 
 DBCon=DatabaseConnector()
 
 DBCon.upload_to_db('dim_users',cleaned.clean_user_data())
+
+DBCon.upload_to_db('dim_card_details',cleaned.clean_card_data('https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf'))

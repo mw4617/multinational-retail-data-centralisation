@@ -5,6 +5,7 @@ import random as rand
 import click
 from database_utils import DatabaseConnector
 import pandas as pd
+import tabula
 
 class DataExtractor():
 
@@ -49,4 +50,30 @@ class DataExtractor():
         print(df.tail()) 
 
         return df 
+
+    def retrieve_pdf_data(self,pdf_url):
+
+        """
+         Takes in a link as an argument, converts the pdf to pandas DataFrame and returns it.
+
+         Args:
+            pdf_url (str): url of the pdf that is being converted
+
+        Returns:
+
+            card_details_df (pd.DataFrame): pandas dataframe containing the card detail table   
+        """
+        
+        #Converting pdf in to list of dataframes
+        card_details_df_list=tabula.read_pdf(pdf_url,stream=True,pages='all')
+        
+        # Combine all the DataFrames in the list into a single DataFrame
+        card_details_df = pd.concat(card_details_df_list, ignore_index=True)
+
+        pd.set_option('display.max_columns', None)  # Show all columns
+    
+        print(card_details_df)
+
+        return card_details_df
+
 
