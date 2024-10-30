@@ -13,10 +13,11 @@ class DataCleaning:
    '''
     
    def __init__(self)-> None:
-        
-    '''
-    Intialises DataCleaning class by creating an instance of DataExtractor for use by DataCleaning methods
-    '''
+
+    """
+    Initializes the DataCleaning class by creating an instance of DataExtractor.
+    """    
+
     self.dt_extractor=DataExtractor() #Intialising data extractor
 
         # Helper function to handle different custom date formats
@@ -122,11 +123,76 @@ class DataCleaning:
 
      #Return filtered dataframe
      return card_deatils_df_filtered
+   
+   # Define a helper function to check if a value is a number
+   def is_number(value):
+
+    """
+    Checks if a value can be converted to a float.
+
+    Args:
+        value (any): The value to check.
+
+    Returns:
+        bool: True if the value can be converted to a float, False otherwise.
+    """
+
+    try:
+        float(value)  # Try converting the value to float
+        return True
+    except ValueError:
+        return False
+
+   def called_clean_store_data(self):
+
+     """
+    Cleans and standardizes store data extracted from the API, addressing formatting 
+    and consistency issues in the 'continent' and 'opening_date' columns.
+
+    This method:
+    
+    1. Extracts store data via the API using 'retrieve_stores_data' method.
+    2. Corrects common errors in the 'continent' column.
+    3. Filters data to include only valid continents ('America' and 'Europe').
+    4. Parses the 'opening_date' column to ensure consistent date formatting.
+    5. Removes erroneous or unnecessary columns, such as 'lat'.
+
+    Returns:
+        pd.DataFrame: A cleaned pandas DataFrame containing store data with consistent formatting.
+     """
+         
+     #getting pd dataframe about stores data that was earlier obtained from the AI core api
+     store_data=self.dt_extractor.retrieve_stores_data('https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/{}',{'x-api-key':'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'})
+     
+     #correcting common error, changing eeContinent to Continent
+     store_data['continent']=store_data['continent'].str.replace('ee','',regex=False)
+     
+     #continets that store are present on
+     store_continents=['America','Europe']
+
+     #cleaning up continents, removing rows with incorrect name
+     store_data=store_data[store_data['continent'].isin(store_continents)]
+
+     #getting the date in correct format
+     store_data['opening_date']=store_data['opening_date'].apply(self.parse_custom_dates)
+     
+     #dropping an erronous column
+     store_data = store_data.drop('lat', axis=1)
+
+     #optional save to excel file
+     #store_data.to_excel('stores_data_cleaned.xlsx', index=False) 
+    
+     return store_data 
+
 
 cleaned=DataCleaning()
 
 DBCon=DatabaseConnector()
 
-DBCon.upload_to_db('dim_users',cleaned.clean_user_data())
+#DBCon.upload_to_db('dim_users',cleaned.clean_user_data())
 
-DBCon.upload_to_db('dim_card_details',cleaned.clean_card_data('https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf'))
+#DBCon.upload_to_db('dim_card_details',cleaned.clean_card_data('https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf'))
+
+#cleaned.called_clean_store_data()
+
+DBCon.upload_to_db('dim_store_details',cleaned.called_clean_store_data())
