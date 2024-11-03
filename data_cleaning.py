@@ -124,24 +124,6 @@ class DataCleaning:
      #Return filtered dataframe
      return card_deatils_df_filtered
    
-   # Define a helper function to check if a value is a number
-   def is_number(value):
-
-    """
-    Checks if a value can be converted to a float.
-
-    Args:
-        value (any): The value to check.
-
-    Returns:
-        bool: True if the value can be converted to a float, False otherwise.
-    """
-
-    try:
-        float(value)  # Try converting the value to float
-        return True
-    except ValueError:
-        return False
 
    def called_clean_store_data(self):
 
@@ -183,7 +165,127 @@ class DataCleaning:
      #store_data.to_excel('stores_data_cleaned.xlsx', index=False) 
     
      return store_data 
+    
+   def convert_product_weights(self,products):
+     
+     """
+     Converts product weights from various units and formats into a standardized float format (kilograms).
 
+     This method processes weights given in different formats and units, such as 'kg', 'g', 'ml', and 'oz', and 
+     converts them into kilograms (kg) as float values. The function also handles expressions like 'a x b' by 
+     multiplying the values, then applying the appropriate unit conversion. Invalid or malformed entries 
+     are removed from the data.
+
+     Args:
+        products (pd.DataFrame): A DataFrame containing a 'weight' column with product weight data in various formats.
+
+     Returns:
+        pd.DataFrame: A pandas DataFrame with the 'weight' column standardized to float values in kilograms (kg).
+    """
+     
+     #function that returns float from a string value, handles a x b input form and single values
+     def convert_to_float(string_val):
+        
+        """
+        Converts a string representation of product weight into a float value, handling both 'a x b' formats and single numeric values.
+
+        This function processes weight strings that may appear in formats like 'a x b' (e.g., '2 x 500'), where it splits 
+        the string, converts each component to a float, multiplies them, and returns the computed value. For single numeric 
+        values, it directly converts the string to a float. Unit suffixes such as 'kg', 'g', 'ml', and 'oz' are stripped 
+        before processing, as only numeric values are used in the computation.
+
+        Args:
+           string_val (str): The string representing the weight. It may be in the format 'a x b' or a single numeric value with an optional unit suffix.
+
+        Returns:
+           float_val (float): The computed weight in numeric form, based on the provided string. This is either the product of 'a x b' values or a direct conversion of a single numeric value. The output is always a float, regardless of the input format.
+        """
+       
+        if " x " in string_val:
+          
+          # Remove any suffix (e.g., 'g') before splitting and converting
+          string_val = string_val.rstrip("kgmlg")
+          
+          # Split and multiply if in "a x b" format
+          num1, num2 = map(float, string_val.split(" x "))
+          
+          #number to be returned
+          float_val=num1*num2
+          
+          return float_val
+        
+        else:
+
+          #converting to float
+          float_val=float(string_val)
+
+        # Directly convert to float if it's a single number
+          return float_val
+     
+     #removing . if it's the last character
+     products['weight'] = products['weight'].apply(lambda x: str(x).rstrip('.').strip() if isinstance(x, str) else str(x))
+
+     #getting the length of the column
+     no_rows=products['weight'].count()
+       
+     i=0
+     
+     #intialising an list of products
+     product_list=[]
+
+     #digits tuple
+     digits=('0','1','2','3','4','5','6','7','8','9')
+     
+     
+
+     for item in products['weight']:
+         # Ensure item is a string for consistent handling
+         item = str(item)  
+         
+         if len(item) <2:
+
+          #removing this faulty row
+          products = products.drop(i)
+
+          continue
+
+         #if kg
+         if(item[-2]=='k' and item[-1]=='g'):
+           
+           #saving each string value as float number, a x b expression is converted to product of multiplication
+           #value is rounded to 3 decimal places and finally adding it to a list
+           product_list.append(round(convert_to_float(item[:-2]),3))
+       
+         #if ml, ml==gram
+         elif(item[-2]=='m' and item[-1]=='l'):
+
+           #same conversion as above, but also converting from grams to kilograms
+           product_list.append(round(0.001*convert_to_float(item[:-2]),3))
+       
+         #just the grams case
+         elif(item[-2] in digits and item[-1]=='g'):
+         
+           product_list.append(round(0.001*convert_to_float(item[:-1]),3))
+
+         #if oz, oz==28.35grams
+         elif(item[-2]=='o' and item[-1]=='z'):
+
+           product_list.append(round(0.001*28.35*convert_to_float(item[:-2]),3))
+         #other case == invalid
+         else:
+         
+           #removing this faulty row
+           products = products.drop(i)
+        
+         i+=1
+
+     products['weight']=product_list
+
+     products['date_added']=products['date_added'].apply(self.parse_custom_dates)
+     
+     #optional 
+     #products.to_excel('product_data_cleaned.xlsx', index=False)
+     return products
 
 cleaned=DataCleaning()
 
@@ -195,4 +297,7 @@ DBCon=DatabaseConnector()
 
 #cleaned.called_clean_store_data()
 
-DBCon.upload_to_db('dim_store_details',cleaned.called_clean_store_data())
+#DBCon.upload_to_db('dim_store_details',cleaned.called_clean_store_data())
+
+DBCon.upload_to_db('dim_products',cleaned.convert_product_weights(cleaned.dt_extractor.extract_from_s3()))
+
