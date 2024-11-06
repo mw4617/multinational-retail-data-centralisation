@@ -49,7 +49,7 @@ class DataCleaning:
    def clean_user_data(self):
 
     '''
-        Cleans the user data from the 'legacy_users' SQL table by processing addresses 
+        Cleans the user data from the 'legacy_users' SQL table from the AI core provided, stored locally "sales data" database by processing addresses 
         and join dates. Returns a cleaned pandas DataFrame.
 
         - Replaces newline characters in the 'address' column with a single space.
@@ -286,6 +286,31 @@ class DataCleaning:
      #optional 
      #products.to_excel('product_data_cleaned.xlsx', index=False)
      return products
+   
+   def clean_orders_data(self):
+    
+    """
+    Retrieves order data from the local sales database and removes specified columns.
+
+    This function fetches order data from the 'orders_table' using self.dt_extractor.read_rds_table.
+    Furthemore it drops the columns 'first_name', 'last_name', and '1' if present to clean the data.
+
+    Returns:
+    
+    order_data(pd.DataFrame): Cleaned order data with unnecessary columns removed.
+    """
+    #retring orders data from the AI core local sales data database and saving in pd datateframr
+    order_data=self.dt_extractor.read_rds_table('orders_table') 
+    
+    #dropping erronous columns
+    order_data=order_data.drop(columns=['first_name','last_name','1'], errors='ignore')
+    
+    #Optional save to excel
+    #order_data.to_excel('order_data.xlsx', index=False)
+    
+    return order_data 
+    
+
 
 cleaned=DataCleaning()
 
@@ -298,6 +323,14 @@ DBCon=DatabaseConnector()
 #cleaned.called_clean_store_data()
 
 #DBCon.upload_to_db('dim_store_details',cleaned.called_clean_store_data())
+#Task 6
+#DBCon.upload_to_db('dim_products',cleaned.convert_product_weights(cleaned.dt_extractor.extract_from_s3()))
 
-DBCon.upload_to_db('dim_products',cleaned.convert_product_weights(cleaned.dt_extractor.extract_from_s3()))
+#Task7
+table_list=DBCon.list_db_tables()
 
+print(table_list)
+
+cleaned.clean_orders_data()
+
+DBCon.upload_to_db('orders_table',cleaned.clean_orders_data())
