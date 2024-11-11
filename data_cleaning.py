@@ -309,8 +309,57 @@ class DataCleaning:
     #order_data.to_excel('order_data.xlsx', index=False)
     
     return order_data 
-    
 
+   def clean_date_events_data(self): 
+     
+     """
+    Cleans date event data by filtering out rows with invalid 'month' values.
+
+    This method:
+    
+    Extracts date event data from a JSON file on S3 using the extract_json_from_s3 method.
+    Applies a filter to ensure that only rows with integer values in the 'month' column are retained.
+    By saving the data to excel inspect the data and by further using chagpt to inspect the data, it was confirmed
+    that if non-integer value exist in dateframe in a given row then it will also be non-integer in month column. Hence
+    it is possible to filter based on month column alone to remove all erronous values. This function optionally saves the cleaned DataFrame to an Excel file for further review.
+
+    Returns:
+        pd.DataFrame: A cleaned DataFrame containing date event data with valid values.
+     """
+     
+     # Extract date events data from the S3 JSON file in to pd dataframe
+     date_events_data=self.dt_extractor.extract_json_from_s3()
+
+     # Filter out rows where 'month' column can be safely converted to an integer
+     def is_integer(value):
+       
+       """
+        Determines if a given value can be safely converted to an integer.
+
+        Args:
+            value (Any): The value to check, typically a string or number.
+
+        Returns:
+            bool: True if the value can be converted to an integer, otherwise False.
+       """
+
+       try:
+
+        int(value) # Attempt to convert to integer
+
+        return True
+       
+       except ValueError:
+
+        return False
+
+     # Filter out rows where column 'month' has non-integer values
+     date_events_data = date_events_data[date_events_data['month'].apply(is_integer)]
+    
+     #Optionally save the dataframe to excel
+     #date_events_data.to_excel('filtered_date_details.xlsx', index=False)
+
+     return date_events_data
 
 cleaned=DataCleaning()
 
@@ -327,10 +376,15 @@ DBCon=DatabaseConnector()
 #DBCon.upload_to_db('dim_products',cleaned.convert_product_weights(cleaned.dt_extractor.extract_from_s3()))
 
 #Task7
-table_list=DBCon.list_db_tables()
+#table_list=DBCon.list_db_tables()
 
-print(table_list)
+#print(table_list)
 
-cleaned.clean_orders_data()
+#cleaned.clean_orders_data()
 
-DBCon.upload_to_db('orders_table',cleaned.clean_orders_data())
+#DBCon.upload_to_db('orders_table',cleaned.clean_orders_data())
+
+#Task8
+DBCon.upload_to_db('dim_date_times',cleaned.clean_date_events_data())
+
+
