@@ -1,10 +1,4 @@
 import yaml
-import sys
-import numpy as np
-import random as rand 
-import click
-import pandas as pd
-
 
 class DatabaseConnector:
 
@@ -104,6 +98,7 @@ class DatabaseConnector:
         '''
 
         table_data_frame.to_sql(table_name, self.local_engine, if_exists='replace', index=False)
+
 
 
 

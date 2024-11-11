@@ -1,14 +1,9 @@
-import cv2
-import sys
-import numpy as np
-import random as rand 
-import click
+import boto3
 from database_utils import DatabaseConnector
 import pandas as pd
-import tabula
 import requests
-import json
-import boto3
+import tabula
+
 
 class DataExtractor():
 
@@ -155,38 +150,37 @@ class DataExtractor():
 
         return store_df      
 
-    def extract_from_s3(self):
-
-        """
-        Downloads a product information CSV file from an Amazon S3 bucket, encoded in UTF-8, and loads it into a pandas DataFrame.
-
-        This method connects to an S3 bucket, downloads a specified CSV file containing product information, and 
-        reads it into a pandas DataFrame for further processing. The CSV file is read using UTF-8 encoding, ensuring
-        proper handling of special characters. The function assumes a default region and file path for saving the 
-        downloaded file locally.
-
-        Returns:
-            pd.DataFrame: A pandas DataFrame containing product information from the downloaded CSV file, with UTF-8 encoding applied.
-        """
-
-        #dowloading product information .csv file
-        s3 = boto3.client('s3', region_name='eu-west-2')
-
-        local_file_path=r'C:\Users\micha\multinational-retail-data-centralisation\multinational-retail-data-centralisation\product_information.csv'
-
-        s3.download_file('data-handling-public', 'products.csv',local_file_path)
+    def extract_csv_from_s3(self):
         
-        #saving product information dataframe
-        product_information = pd.read_csv(local_file_path, encoding='utf-8')
+       """
+       Downloads a product information CSV file from an Amazon S3 bucket, encoded in UTF-8, and loads it into a pandas DataFrame.
 
-        #optional
-        #product_information.to_excel('product_data_uncleaned.xlsx', index=False)
+       This method connects to an S3 bucket, downloads a specified CSV file containing product information, and 
+       reads it into a pandas DataFrame for further processing. The CSV file is read using UTF-8 encoding, ensuring
+       proper handling of special characters. The function assumes a default region and file path for saving the 
+       downloaded file locally.
+           Returns:
+           pd.DataFrame: A pandas DataFrame containing product information from the downloaded CSV file, with UTF-8 encoding applied.
+       """
+       
+       #dowloading product information .csv file
+       s3 = boto3.client('s3', region_name='eu-west-2')
 
-        return product_information
+       local_file_path=r'C:\Users\micha\multinational-retail-data-centralisation\multinational-retail-data-centralisation\product_information.csv'
 
+       s3.download_file('data-handling-public', 'products.csv',local_file_path)
+        
+       #saving product information dataframe
+       product_information = pd.read_csv(local_file_path, encoding='utf-8')
+
+       #optional
+       #product_information.to_excel('product_data_uncleaned.xlsx', index=False)
+
+       return product_information
+        
     def extract_json_from_s3(self):
-     
-     """
+
+      """
     Downloads a JSON file containing date details from an Amazon S3 bucket, 
     loads it into a pandas DataFrame, and optionally saves it as an Excel file.
 
@@ -194,31 +188,21 @@ class DataExtractor():
     and reads it into a pandas DataFrame for further processing. 
 
     Returns:
-        pd.DataFrame: A pandas DataFrame containing the data from the JSON file.
-     """
+       pd.DataFrame: A pandas DataFrame containing the data from the JSON file.
+      """
 
-     # Connect to S3
-     s3 = boto3.client('s3', region_name='eu-west-1')
+      # Connect to S3
+      s3 = boto3.client('s3', region_name='eu-west-1')
 
-     local_file_path=r'C:\Users\micha\multinational-retail-data-centralisation\multinational-retail-data-centralisation\date_details.json'
+      local_file_path=r'C:\Users\micha\multinational-retail-data-centralisation\multinational-retail-data-centralisation\date_details.json'
 
-     s3.download_file('data-handling-public', 'date_details.json',local_file_path)
+      s3.download_file('data-handling-public', 'date_details.json',local_file_path)
 
-     date_details=pd.read_json(local_file_path,encoding='utf-8')
+      date_details=pd.read_json(local_file_path,encoding='utf-8')
      
-     #optional
-     #date_details.to_excel('date_details.xlsx', index=False)
+      #optional
+      #date_details.to_excel('date_details.xlsx', index=False)
 
-     return date_details
-
-
+      return date_details
 
 
-
-DX=DataExtractor()
-#header={'x-api-key':'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
-#DX.retrieve_stores_data('https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/{}',header)
-
-#DX.extract_from_s3()
-
-DX.extract_json_from_s3()

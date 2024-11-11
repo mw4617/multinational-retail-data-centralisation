@@ -1,11 +1,7 @@
-import cv2
-import sys
-import numpy as np
-import random as rand 
-import click
-import pandas as pd
 from data_extraction import DataExtractor
 from database_utils import DatabaseConnector
+import pandas as pd
+
 class DataCleaning:
 
    '''
@@ -365,24 +361,22 @@ cleaned=DataCleaning()
 
 DBCon=DatabaseConnector()
 
-#DBCon.upload_to_db('dim_users',cleaned.clean_user_data())
+#Task 3
+DBCon.upload_to_db('dim_users',cleaned.clean_user_data())
 
-#DBCon.upload_to_db('dim_card_details',cleaned.clean_card_data('https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf'))
+#Task 4
+DBCon.upload_to_db('dim_card_details',cleaned.clean_card_data('https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf'))
 
-#cleaned.called_clean_store_data()
+#Task 5
+DBCon.upload_to_db('dim_store_details',cleaned.called_clean_store_data())
 
-#DBCon.upload_to_db('dim_store_details',cleaned.called_clean_store_data())
 #Task 6
-#DBCon.upload_to_db('dim_products',cleaned.convert_product_weights(cleaned.dt_extractor.extract_from_s3()))
+DBCon.upload_to_db('dim_products',cleaned.convert_product_weights(cleaned.dt_extractor.extract_csv_from_s3()))
 
 #Task7
-#table_list=DBCon.list_db_tables()
-
-#print(table_list)
-
-#cleaned.clean_orders_data()
-
-#DBCon.upload_to_db('orders_table',cleaned.clean_orders_data())
+table_list=DBCon.list_db_tables()
+print(f'The list of db table is: {table_list}')
+DBCon.upload_to_db('orders_table',cleaned.clean_orders_data())
 
 #Task8
 DBCon.upload_to_db('dim_date_times',cleaned.clean_date_events_data())
