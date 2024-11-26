@@ -3,6 +3,8 @@ from database_utils import DatabaseConnector
 import pandas as pd
 import requests
 import tabula
+import pdfplumber
+import fitz  # PyMuPDF
 
 
 class DataExtractor():
@@ -49,9 +51,6 @@ class DataExtractor():
         pd.set_option('display.max_rows', None)  # Show all rows
         pd.set_option('display.max_columns', None)  # Show all columns
 
-        # Display the DataFrame
-        print(df.tail()) 
-
         return df 
 
     def retrieve_pdf_data(self,pdf_url):
@@ -65,20 +64,19 @@ class DataExtractor():
         Returns:
 
             card_details_df (pd.DataFrame): pandas dataframe containing the card detail table   
+        
         """
         
         #Converting pdf in to list of dataframes
-        card_details_df_list=tabula.read_pdf(pdf_url,stream=True,pages='all')
+        card_details_df_list=tabula.read_pdf(pdf_url,lattice=True,pages='all')
         
         # Combine all the DataFrames in the list into a single DataFrame
         card_details_df = pd.concat(card_details_df_list, ignore_index=True)
 
-        pd.set_option('display.max_columns', None)  # Show all columns
-    
-        print(card_details_df)
-
         return card_details_df
-    
+
+        
+   
     def list_number_of_stores(self, no_stores_api_endpoint,header_dict):
         
         """
@@ -126,10 +124,7 @@ class DataExtractor():
         store_df=response.json()
         
         store_df=pd.DataFrame([store_df])
-
-        print(f"Store {0} data: {store_df}")
-
-        
+     
         # Loop through each store after the first one and retrieve data
         for store_number in range(no_stores-1):
             response = requests.get(retrieve_stores_api_endpoint.format(store_number+1),headers=header_dict)
@@ -140,8 +135,7 @@ class DataExtractor():
                 current_store_df=pd.DataFrame([store_data])
 
                 store_df=pd.concat([store_df,current_store_df])
-
-                #print(f"Store {store_number+1} data: {store_data}")
+              
             else:
                 print(f"Failed to retrieve data for store {store_number}.  Status code: {response.status_code}")
         

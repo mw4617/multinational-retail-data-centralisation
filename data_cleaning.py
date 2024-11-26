@@ -106,19 +106,30 @@ class DataCleaning:
         pd.DataFrame: A cleaned pandas DataFrame containing valid card details with consistent date formatting and relevant columns only.
      """
      #extracting pandas dateframe containing card details
-     card_deatils_df=self.dt_extractor.retrieve_pdf_data(url)
-     
-     # Convert 'date_payment_confirmed' to datetime, forcing errors to 'NaT' for invalid dates
-     card_deatils_df['date_payment_confirmed'] = card_deatils_df['date_payment_confirmed'].apply(self.parse_custom_dates)
-
-     # Filter out rows where 'date_payment_confirmed' couldn't be converted (i.e., where it's NaT)
-     card_deatils_df_filtered = card_deatils_df[card_deatils_df['date_payment_confirmed'].notna()]
-     
+     card_deatails_df=self.dt_extractor.retrieve_pdf_data(url)
+    
      #dropping erronous columns with null values
-     card_deatils_df_filtered = card_deatils_df_filtered.drop(columns=['card_number expiry_date', 'Unnamed: 0'], errors='ignore')
+     card_deatails_df=card_deatails_df.drop(columns=['card_number expiry_date', 'Unnamed: 0'], errors='ignore')
+     
+     card_deatails_df=card_deatails_df.sort_values(by='date_payment_confirmed',ascending=False)
+
+     pd.set_option('display.max_rows', None)
+     pd.set_option('display.width', None)  # Automatically adjusts to terminal width
+    
+     # Convert 'date_payment_confirmed' to datetime, forcing errors to 'NaT' for invalid dates
+     card_deatails_df['date_payment_confirmed'] = card_deatails_df['date_payment_confirmed'].apply(self.parse_custom_dates)
+     
+     # Filter out rows where 'date_payment_confirmed' couldn't be converted (i.e., where it's NaT)
+     card_deatails_df_filtered = card_deatails_df[card_deatails_df['date_payment_confirmed'].notna()]
+
+     #Remove non-digit characters from card detais - accomodates for ??? at front of some card numbers
+     card_deatails_df_filtered['card_number'] = card_deatails_df_filtered['card_number'].apply(lambda x: str(x).lstrip('?'))
+
+     #optionally saving card details to excel
+     #card_deatails_df_filtered.to_excel('dim_card_details.xlsx', index=False)
 
      #Return filtered dataframe
-     return card_deatils_df_filtered
+     return card_deatails_df_filtered
    
 
    def called_clean_store_data(self):
@@ -375,7 +386,6 @@ DBCon.upload_to_db('dim_products',cleaned.convert_product_weights(cleaned.dt_ext
 
 #Task7
 table_list=DBCon.list_db_tables()
-print(f'The list of db table is: {table_list}')
 DBCon.upload_to_db('orders_table',cleaned.clean_orders_data())
 
 #Task8
