@@ -47,8 +47,8 @@ The **Multinational Retail Data Centralisation** project is designed to centrali
    - Use VS Code or your preferred IDE to open `data_extraction.py`, `data_cleaning.py`, and `database_utils.py`.
    - Review the code and ensure all configurations match your setup.
 
-2. **Run the `data_cleaning.py` script:
-   - This script incorporates other scripts so it's not necessary to run other python scripts.
+2. **Open the `data_cleaning.py` script and run it:
+   - This script links to other scripts so it's not necessary to run other python scripts.
 
 3. **Verify the Data:**
    - After running the scripts, check the `sales_data` database in PostgreSQL to ensure tables are populated.
