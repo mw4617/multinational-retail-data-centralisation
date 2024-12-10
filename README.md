@@ -36,8 +36,8 @@ The **Multinational Retail Data Centralisation** project is designed to centrali
      RDS_DATABASE: <Your AWS RDS Database Name>
      RDS_PORT: <Your AWS RDS Port>
      ```
-
-   **Note:** Add this file to `.gitignore` to prevent uploading credentials to a public repository.
+   - Create another file with the same structure called local_creds.yaml. Store the credentials of local sales data database in it.
+   **Note:** Add those files to `.gitignore` to prevent uploading credentials to a public repository.
 
 ---
 

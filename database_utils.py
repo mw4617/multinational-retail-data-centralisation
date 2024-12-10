@@ -17,17 +17,19 @@ class DatabaseConnector:
         self.local_engine=None
         self.init_db_engine()
 
-    def read_db_creds(self):
+    def read_db_creds(self,path):
 
         '''
         Retrieves yaml credentials of online db and returns them as dictionary.
+        Args:
+        path (str): The local file path where yaml file with database credentials is saved. 
 
         Returns:
            credentials dict(str): stores RDS_HOST, RDS_PASSWORD, RDS_USER ,RDS_DATABASE
            RDS_PORT
         '''
 
-        with open(r'C:\Users\micha\multinational-retail-data-centralisation\multinational-retail-data-centralisation\db_creds.yaml','r') as stream:
+        with open(path,'r') as stream:
             credentials=yaml.safe_load(stream)
 
         return credentials    
@@ -41,7 +43,7 @@ class DatabaseConnector:
            engine (sqlalchemy.engine.Engine): The SQLAlchemy engine for the online PostgreSQL database.
         '''
 
-        credentials=self.read_db_creds() #dictionary that containing sql-alchemy login data
+        credentials=self.read_db_creds(r'C:\Users\micha\multinational-retail-data-centralisation\multinational-retail-data-centralisation\db_creds.yaml') #dictionary that containing sql-alchemy login data
         
         #engine from the online db to extract data from
         from sqlalchemy import create_engine
@@ -56,13 +58,15 @@ class DatabaseConnector:
         
         #engine to store data on local database
         
+        local_credentials=self.read_db_creds(r'C:\Users\micha\multinational-retail-data-centralisation\multinational-retail-data-centralisation\local_creds.yaml') #dictionary that containing sql-alchemy login data
+
         DATABASE_TYPE = 'postgresql'
         DBAPI = 'psycopg2'
-        HOST = 'localhost'
-        USER = 'postgres'
-        PASSWORD = 'Sabahart7.'
-        DATABASE = 'sales_data'
-        PORT = 5432
+        HOST = local_credentials['RDS_HOST']
+        USER = local_credentials['RDS_USER']
+        PASSWORD = local_credentials['RDS_PASSWORD']
+        DATABASE = local_credentials['RDS_PORT']
+        PORT = local_credentials['RDS_PORT']
         self.local_engine = create_engine(f"{DATABASE_TYPE}+{DBAPI}://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}")
         
         return engine
@@ -98,7 +102,6 @@ class DatabaseConnector:
         '''
 
         table_data_frame.to_sql(table_name, self.local_engine, if_exists='replace', index=False)
-
 
 
 
